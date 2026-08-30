@@ -505,22 +505,7 @@ Error generating stack: `+l.message+`
     }
     painel.appendChild(grafico);
 
-    var morto = fx.querySelector(".fin2-an-morto");
-    if(morto){
-      var m2 = morto.cloneNode(true);
-      var lbl = m2.querySelector(".stat-lbl"); if(lbl) lbl.textContent = "Break even";
-      if(fecha && receita > 0 && (receita - V) > 0){
-        var mPct = (receita - V) / receita, be = F / mPct, cob = Math.round(receita / be * 100);
-        var v2 = m2.querySelector(".fin2-an-morto-v");
-        var antigo = v2 ? v2.textContent.trim() : "";
-        if(v2) v2.innerHTML = fmt(be).replace("+","") + "<small> /m\u00eas</small>";
-        var p2 = m2.querySelector(".fin2-an-morto-p");
-        if(p2) p2.innerHTML = "\u00c9 a fatura\u00e7\u00e3o mensal a partir da qual deixas de perder dinheiro, com os n\u00fameros deste m\u00eas: <b class=\"mono\">" + fmt(F).replace("+","") +
-          "</b> de custos fixos a dividir pela margem de contribui\u00e7\u00e3o de <b class=\"mono\">" + Math.round(mPct*100) + "%</b>. A receita do m\u00eas cobre <b class=\"mono\">" + cob +
-          "%</b> do break even." + (antigo ? " O motor antigo dava <b class=\"mono\">" + antigo + "</b> pela m\u00e9dia de 6 meses \u2014 c\u00e1lculo por validar." : "");
-      }
-      painel.appendChild(m2);
-    }
+    /* Break even sai daqui — vive no tile da fila de KPIs (decisão Maria) */
     var footS = sc.querySelector(".fin2-an-sub-p");
     painel.appendChild(el("div","fin2-an-foot",
       "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar. A variação de cada linha compara com a média dos 3 meses anteriores. As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
