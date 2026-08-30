@@ -318,7 +318,7 @@ Error generating stack: `+l.message+`
     return '<div class="tt-kpi"><span class="tt-kpi-l">' + rotulo + '</span>' +
       '<span class="tt-kpi-v">' + valor + '</span>' + (sparkHtml||"") +
       (deltaHtml ? '<span class="tt-kpi-d">' + deltaHtml + '</span>' : "") +
-      '<span class="tt-kpi-s">vs. mês anterior</span></div>';
+      '<span class="tt-kpi-s">vs. média 3 meses</span></div>';
   }
   function deltaTxt(cur, prev, bomSubir, emPP){
     if(cur === null || prev === null || !isFinite(prev)) return "";
@@ -446,14 +446,23 @@ Error generating stack: `+l.message+`
       var iM = -1;
       for(var k = 0; k < serie.length; k++) if(serie[k].mes === mesAtu) iM = k;
       if(iM >= 0){
-        var cur = serie[iM], ant = iM > 0 ? serie[iM-1] : null;
+        var cur = serie[iM];
         var col = function(campo){ return serie.map(function(m){ return m[campo]; }); };
+        var med3 = function(campo){
+          var v = serie.slice(Math.max(0, iM-3), iM).map(function(m){ return m[campo]; })
+            .filter(function(x){ return x !== null && isFinite(x); });
+          if(!v.length) return null;
+          return v.reduce(function(a,b){ return a+b; }, 0) / v.length; };
         var pendente = function(rotulo, nota){
           return '<div class="tt-kpi"><span class="tt-kpi-l">' + rotulo + '</span>' +
             '<span class="tt-kpi-v" style="color:var(--t3)">—</span>' +
             '<span class="tt-chip">por ligar aos dados</span>' +
             '<span class="tt-kpi-s">' + nota + '</span></div>'; };
         var html = "";
+        html += tile("Custos fixos", eur0(cur.F), spark(col("F")), deltaTxt(cur.F, med3("F"), false));
+        html += tile("Custos variáveis", eur0(cur.V), spark(col("V")), deltaTxt(cur.V, med3("V"), false));
+        html += pendente("Margem bruta", "projetos fechados · vem do módulo de projetos");
+        html += pendente("Horas picadas", "vs. horas disponíveis · vem do registo de horas");
         if(cur.cob !== null){
           var pctD = Math.min(cur.cob, 100), Circ = 2 * Math.PI * 17;
           var corD = cur.cob >= 100 ? "var(--grn)" : (cur.cob >= 70 ? "var(--ylw)" : "var(--red)");
@@ -467,12 +476,6 @@ Error generating stack: `+l.message+`
             Math.round(cur.cob) + "%</text></svg>" +
             '<span class="tt-kpi-s">da faturação necessária</span></div>';
         }
-        html += tile("Custos fixos", eur0(cur.F), spark(col("F")),
-          ant ? deltaTxt(cur.F, ant.F, false) : "");
-        html += tile("Custos variáveis", eur0(cur.V), spark(col("V")),
-          ant ? deltaTxt(cur.V, ant.V, false) : "");
-        html += pendente("Margem bruta", "projetos fechados · vem do módulo de projetos");
-        html += pendente("Horas picadas", "vs. horas disponíveis · vem do registo de horas");
         var kpis = el("div","tt-kpis"); kpis.innerHTML = html;
         var painelMapa = mapa.closest(".fin2-an-painel");
         if(painelMapa) painelMapa.parentNode.insertBefore(kpis, painelMapa);
