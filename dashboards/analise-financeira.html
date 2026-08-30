@@ -268,6 +268,7 @@ Error generating stack: `+l.message+`
   var NATUREZA = { "Material":"variavel", "Combustível":"variavel", "Subcontratos":"variavel",
     "Serviços":"variavel", "Transporte":"variavel", "Alimentação":"variavel",
     "Estadia":"variavel", "Mão de obra":"variavel", "Pessoal":"fixo",
+    "Pessoal (Interno)":"fixo", "Pessoal (Externo)":"variavel",
     "Rendas":"fixo", "Comunicações":"fixo", "Trabalhos especializados":"fixo",
     "Água & Eletricidade":"fixo" };
   var COR = { fixo:"var(--blu)", variavel:"var(--acc)", validar:"var(--b3)" };
@@ -423,8 +424,8 @@ Error generating stack: `+l.message+`
         var vv = l.querySelector(".fin2-an-dr-v"); if(vv) pes = Math.abs(num(vv.textContent) || 0); } });
     if(pes){
       var rp = el("div","fin2-an-row");
-      var lbp = el("span","fin2-an-lb"); lbp.title = "Pessoal";
-      lbp.appendChild(el("span","fin2-an-nome","Pessoal"));
+      var lbp = el("span","fin2-an-lb"); lbp.title = "Pessoal (interno)";
+      lbp.appendChild(el("span","fin2-an-nome","Pessoal (interno)"));
       lbp.appendChild(el("span","fin2-an-sub","recibos de vencimento"));
       rp.appendChild(lbp);
       var bp = el("div","fin2-an-bar"); var ip = el("i");

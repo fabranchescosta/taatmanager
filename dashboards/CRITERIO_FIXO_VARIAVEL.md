@@ -9,9 +9,9 @@ houve trabalho.
 
 | Tipo | Natureza | Nota |
 |---|---|---|
-| Pessoal (recibos de vencimento) | Fixo | contratos — sai sempre |
+| Pessoal (Interno) | Fixo | contratos e recibos de vencimento — sai sempre |
+| Pessoal (Externo) | Variável | freelancers e recibos verdes — absorve o tipo "Mão de obra" |
 | Material | Variável | consumo de obra |
-| Mão de obra (faturas) | Variável | freelancers |
 | Subcontratos | Variável | inclui lacagens (ver mudanças abaixo) |
 | Combustível | Variável | deslocações a obra |
 | Alimentação | Variável | refeições em obra/deslocação (decisão Maria) |
@@ -31,7 +31,11 @@ houve trabalho.
 2. **Separar "Serviços"** (decisão Maria): avenças e contabilidade passam para
    Trabalhos especializados (fixo); serviços de obra tipo lacagem passam para
    Subcontratos (variável). O tipo "Serviços" tende a desaparecer.
-3. **Desmembrar "Outros"** — conteúdo verificado nos dados de agosto de 2026:
+3. **Separar as despesas de Pessoal em dois** (decisão Maria): Pessoal
+   (Interno), fixo — contratos e recibos de vencimento; Pessoal (Externo),
+   variável — freelancers e recibos verdes. O tipo atual "Mão de obra"
+   (faturas de freelancers) é absorvido pelo Pessoal (Externo).
+4. **Desmembrar "Outros"** — conteúdo verificado nos dados de agosto de 2026:
    - Renda atelier, 850 €/mês recorrente → tipo Rendas (fixo);
    - Consumíveis oficina, 488 € (626 € em julho) → juntar a Material ou tipo
      próprio (variável) — decidir na validação;
