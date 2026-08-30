@@ -385,6 +385,7 @@ Error generating stack: `+l.message+`
     painel.appendChild(cab);
 
     var lista = el("div","tt-lista");
+    var linhas = [];
     sc.querySelectorAll(".fin2-an-row").forEach(function(row){
       var r = row.cloneNode(true);
       var nome = r.querySelector(".fin2-an-nome");
@@ -392,7 +393,32 @@ Error generating stack: `+l.message+`
       var barra = r.querySelector(".fin2-an-bar i"); if(barra) barra.style.background = COR[nat];
       if(nat === "validar"){ var lb = r.querySelector(".fin2-an-lb");
         if(lb) lb.appendChild(el("span","tt-chip","a validar")); }
-      lista.appendChild(r); });
+      var bv = r.querySelector(".fin2-an-bv");
+      linhas.push({ v: bv ? Math.abs(num(bv.textContent) || 0) : 0, n: r }); });
+    /* Pessoal vem dos recibos de vencimento (mapa), não das faturas — sem ele o lado fixo fica vazio */
+    var pes = null;
+    mapa.querySelectorAll(".fin2-an-dr-l").forEach(function(l){
+      var n = l.querySelector(".fin2-an-dr-n");
+      if(n && n.textContent.trim() === "Pessoal"){
+        var vv = l.querySelector(".fin2-an-dr-v"); if(vv) pes = Math.abs(num(vv.textContent) || 0); } });
+    if(pes){
+      var rp = el("div","fin2-an-row");
+      var lbp = el("span","fin2-an-lb"); lbp.title = "Pessoal";
+      lbp.appendChild(el("span","fin2-an-nome","Pessoal"));
+      lbp.appendChild(el("span","fin2-an-sub","recibos de vencimento"));
+      rp.appendChild(lbp);
+      var bp = el("div","fin2-an-bar"); var ip = el("i");
+      ip.style.background = COR.fixo; bp.appendChild(ip); rp.appendChild(bp);
+      rp.appendChild(el("span","fin2-an-bv", pes.toFixed(2).replace(".",",") + "\u00a0€"));
+      rp.appendChild(el("span","fin2-an-delta",""));
+      linhas.push({ v: pes, n: rp });
+    }
+    linhas.sort(function(a,b){ return b.v - a.v; });
+    var maxV = linhas.length ? linhas[0].v : 0;
+    linhas.forEach(function(l){
+      var i2 = l.n.querySelector(".fin2-an-bar i");
+      if(i2 && maxV > 0) i2.style.width = (l.v / maxV * 100).toFixed(1) + "%";
+      lista.appendChild(l.n); });
     painel.appendChild(lista);
 
     var grafico = el("div","tt-grafico");
@@ -431,7 +457,7 @@ Error generating stack: `+l.message+`
     }
     var footS = sc.querySelector(".fin2-an-sub-p");
     painel.appendChild(el("div","fin2-an-foot",
-      "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar (mapeamento provisório, fecha-se na validação dos números). As linhas mostram só o que tem documento" +
+      "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar (mapeamento provisório, fecha-se na validação dos números). As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
       (footS ? " — " + footS.textContent.trim().charAt(0).toLowerCase() + footS.textContent.trim().slice(1) : ".")));
     var footF = fx.querySelector(".fin2-an-foot"); if(footF) painel.appendChild(footF.cloneNode(true));
 
