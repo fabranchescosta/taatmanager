@@ -514,7 +514,8 @@ Error generating stack: `+l.message+`
 
     fx.classList.add("tt-oculto"); sc.classList.add("tt-oculto");
     var precos = panelByTitle("Pre\u00e7os de compra"); if(precos) precos.classList.add("tt-oculto");
-    fx.parentNode.insertBefore(painel, fx);
+    var painelMapa0 = mapa.closest(".fin2-an-painel");
+    fx.parentNode.insertBefore(painel, painelMapa0 || fx);
 
     /* ---- 3. Fila de KPIs (tiles com histórico dos meses do seletor) ---- */
     if(serie && serie.length > 1){
@@ -554,8 +555,7 @@ Error generating stack: `+l.message+`
             '<span class="tt-kpi-s">da faturação necessária</span></div>';
         }
         var kpis = el("div","tt-kpis"); kpis.innerHTML = html;
-        var painelMapa = mapa.closest(".fin2-an-painel");
-        if(painelMapa) painelMapa.parentNode.insertBefore(kpis, painelMapa);
+        painel.parentNode.insertBefore(kpis, painel);
       }
     }
     if(obs) obs.takeRecords(); /* não reagir às nossas próprias mutações */
