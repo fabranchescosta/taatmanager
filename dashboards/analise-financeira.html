@@ -271,7 +271,7 @@ Error generating stack: `+l.message+`
     "Pessoal (Interno)":"fixo", "Pessoal (Externo)":"variavel",
     "Rendas":"fixo", "Comunicações":"fixo", "Trabalhos especializados":"fixo",
     "Água & Eletricidade":"fixo" };
-  var COR = { fixo:"var(--acc)", variavel:"#f0964a", validar:"var(--b3)" }; // laranja derivado da família da paleta
+  var COR = { fixo:"#4a7ef0", variavel:"#f0964a", validar:"var(--b3)" }; // azul profundo + laranja (escolha da Maria)
   function num(t){ if(!t) return null;
     t = t.replace(/[€\s  ]/g,"").replace("−","-").replace(/\./g,"").replace(",",".");
     var v = parseFloat(t); return isNaN(v) ? null : v; }
@@ -521,7 +521,7 @@ Error generating stack: `+l.message+`
     /* Break even sai daqui — vive no tile da fila de KPIs (decisão Maria) */
     var footS = sc.querySelector(".fin2-an-sub-p");
     painel.appendChild(el("div","fin2-an-foot",
-      "Na lista, barra <b>verde</b> = custo fixo, <b>laranja</b> = variável, cinza = natureza por confirmar. A variação de cada linha compara com a média dos 3 meses anteriores. As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
+      "Na lista, barra <b>azul</b> = custo fixo, <b>laranja</b> = variável, cinza = natureza por confirmar. A variação de cada linha compara com a média dos 3 meses anteriores. As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
       (footS ? " — " + footS.textContent.trim().charAt(0).toLowerCase() + footS.textContent.trim().slice(1) : ".")));
     var footF = fx.querySelector(".fin2-an-foot"); if(footF) painel.appendChild(footF.cloneNode(true));
 
