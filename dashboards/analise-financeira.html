@@ -234,6 +234,16 @@ Error generating stack: `+l.message+`
   .tt-chip{font:9px var(--m);letter-spacing:.05em;text-transform:uppercase;color:var(--t3);
     border:1px solid var(--b2);padding:1px 5px;border-radius:3px;white-space:nowrap;
     align-self:flex-start;margin-top:2px}
+  .tt-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:var(--sp-3)}
+  .tt-kpi{background:var(--s1);border:1px solid var(--b1);padding:10px 12px;
+    display:flex;flex-direction:column;gap:4px;min-width:0}
+  .tt-kpi-l{font:10px var(--m);letter-spacing:.06em;text-transform:uppercase;color:var(--t3);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tt-kpi-v{font:600 18px var(--m);color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tt-kpi svg.tt-spark{width:100%;height:22px;display:block}
+  .tt-kpi-d{font:10px var(--m);white-space:nowrap}
+  .tt-kpi-s{font:9px var(--a);color:var(--t3)}
+  .tt-kpi--donut{align-items:center;text-align:center;justify-content:space-between}
 </style>
 <script>
 (function(){
@@ -260,12 +270,73 @@ Error generating stack: `+l.message+`
     return l ? num(l.querySelector(".fin2-an-leg-v").textContent) : null; }
   function pinta(leg, cor){ var p = leg.querySelector(".fin2-an-ponto"); if(p) p.style.background = cor; return leg; }
 
+  var serie = null, colhendo = false;
+  function lerMes(){
+    var fx = panelByTitle("Fixos e variáveis"), mapa = document.querySelector(".fin2-an-dr:not(.tt-mapa)");
+    if(!fx || !mapa) return null;
+    var lb = fx.querySelector("h3 span");
+    var rT = mapa.querySelector(".fin2-an-dr-l.topo .fin2-an-dr-v"),
+        rR = mapa.querySelector(".fin2-an-dr-l.resultado .fin2-an-dr-v");
+    var m = { mes: lb ? lb.textContent.replace("·","").trim() : "",
+      receita: rT ? num(rT.textContent) : null,
+      resultado: rR ? num(rR.textContent) : null,
+      F: legVal(fx,"Fixos"), V: legVal(fx,"Variáveis"), PC: legVal(fx,"Por classificar") || 0 };
+    m.custos = (m.F !== null && m.V !== null) ? m.F + m.V + m.PC : null;
+    m.margem = (m.receita !== null && m.V !== null) ? m.receita - m.V : null;
+    m.mPct = (m.margem !== null && m.receita > 0) ? m.margem / m.receita : null;
+    m.be = (m.F !== null && m.mPct > 0) ? m.F / m.mPct : null;
+    m.cob = (m.be && m.receita !== null) ? m.receita / m.be * 100 : null;
+    return m;
+  }
+  function colher(){
+    var sel = document.querySelector(".fin2-an-sel select");
+    if(!sel || sel.options.length < 2){ serie = []; return; }
+    colhendo = true;
+    var setV = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,"value").set;
+    var orig = sel.value, dados = [], idx = sel.options.length - 1;
+    function muda(v, cb){ setV.call(sel, v); sel.dispatchEvent(new Event("change",{bubbles:true}));
+      var alvo = sel.options[sel.selectedIndex].text, t0 = Date.now();
+      (function espera(){ var m = lerMes();
+        if((m && m.mes === alvo) || Date.now() - t0 > 900) cb(); else setTimeout(espera, 60); })(); }
+    (function passo(){
+      if(idx < 0){ muda(orig, function(){ colhendo = false; serie = dados; aplicar(); }); return; }
+      muda(sel.options[idx].value, function(){ var m = lerMes(); if(m) dados.push(m); idx--; passo(); });
+    })();
+  }
+  function spark(vals){
+    var v = vals.filter(function(x){ return x !== null && isFinite(x); });
+    if(v.length < 2) return "";
+    var mn = Math.min.apply(null,v), mx = Math.max.apply(null,v), amp = (mx - mn) || 1;
+    var pts = v.map(function(x,i){
+      return (i/(v.length-1)*100).toFixed(1) + "," + (20 - (x-mn)/amp*16 + 2).toFixed(1); }).join(" ");
+    var fim = pts.split(" ").pop().split(",");
+    return '<svg class="tt-spark" viewBox="0 0 100 24" preserveAspectRatio="none">' +
+      '<polyline points="' + pts + '" fill="none" stroke="var(--t3)" stroke-width="1.5"/>' +
+      '<circle cx="' + fim[0] + '" cy="' + fim[1] + '" r="2" fill="var(--acc)"/></svg>';
+  }
+  function tile(rotulo, valor, sparkHtml, deltaHtml){
+    return '<div class="tt-kpi"><span class="tt-kpi-l">' + rotulo + '</span>' +
+      '<span class="tt-kpi-v">' + valor + '</span>' + (sparkHtml||"") +
+      (deltaHtml ? '<span class="tt-kpi-d">' + deltaHtml + '</span>' : "") +
+      '<span class="tt-kpi-s">vs. mês anterior</span></div>';
+  }
+  function deltaTxt(cur, prev, bomSubir, emPP){
+    if(cur === null || prev === null || !isFinite(prev)) return "";
+    var d = emPP ? (cur - prev) * 100 : (Math.abs(prev) > 0.004 ? (cur - prev)/Math.abs(prev)*100 : null);
+    if(d === null || !isFinite(d)) return "";
+    var sobe = d >= 0, bom = bomSubir ? sobe : !sobe;
+    var s = (sobe ? "↗ +" : "↘ −") + Math.abs(d).toFixed(1).replace(".",",") + (emPP ? " p.p." : "%");
+    return '<span class="' + (bom ? "c-grn" : "c-red") + '">' + s + '</span>';
+  }
+  function eur0(v){ return v === null ? "—" :
+    Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g," ") + " €"; }
+
   function aplicar(){
     var fx = panelByTitle("Fixos e variáveis"), sc = panelByTitle("Saídas por categoria");
     var mapa = document.querySelector(".fin2-an-dr:not(.tt-mapa)");
     if(!fx || !sc || !mapa) return;
 
-    document.querySelectorAll(".tt-custos,.tt-mapa").forEach(function(n){ n.remove(); });
+    document.querySelectorAll(".tt-custos,.tt-mapa,.tt-kpis").forEach(function(n){ n.remove(); });
 
     var F = legVal(fx,"Fixos"), V = legVal(fx,"Variáveis"), PC = legVal(fx,"Por classificar") || 0;
 
@@ -324,7 +395,10 @@ Error generating stack: `+l.message+`
     painel.appendChild(lista);
 
     var grafico = el("div","tt-grafico");
-    var subp = fx.querySelector(".fin2-an-sub-p"); if(subp) grafico.appendChild(subp.cloneNode(true));
+    var subp = fx.querySelector(".fin2-an-sub-p");
+    if(subp){ var sp2 = subp.cloneNode(true);
+      sp2.innerHTML = sp2.innerHTML.replace(/ponto morto/g, "break even");
+      grafico.appendChild(sp2); }
     var pilha = fx.querySelector(".fin2-an-pilha");
     if(pilha){ var pc2 = pilha.cloneNode(true); var segs = pc2.querySelectorAll("i");
       if(segs[0]) segs[0].style.background = COR.fixo;
@@ -338,7 +412,22 @@ Error generating stack: `+l.message+`
     grafico.appendChild(legenda);
     painel.appendChild(grafico);
 
-    var morto = fx.querySelector(".fin2-an-morto"); if(morto) painel.appendChild(morto.cloneNode(true));
+    var morto = fx.querySelector(".fin2-an-morto");
+    if(morto){
+      var m2 = morto.cloneNode(true);
+      var lbl = m2.querySelector(".stat-lbl"); if(lbl) lbl.textContent = "Break even";
+      if(fecha && receita > 0 && (receita - V) > 0){
+        var mPct = (receita - V) / receita, be = F / mPct, cob = Math.round(receita / be * 100);
+        var v2 = m2.querySelector(".fin2-an-morto-v");
+        var antigo = v2 ? v2.textContent.trim() : "";
+        if(v2) v2.innerHTML = fmt(be).replace("+","") + "<small> /m\u00eas</small>";
+        var p2 = m2.querySelector(".fin2-an-morto-p");
+        if(p2) p2.innerHTML = "\u00c9 a fatura\u00e7\u00e3o mensal a partir da qual deixas de perder dinheiro, com os n\u00fameros deste m\u00eas: <b class=\"mono\">" + fmt(F).replace("+","") +
+          "</b> de custos fixos a dividir pela margem de contribui\u00e7\u00e3o de <b class=\"mono\">" + Math.round(mPct*100) + "%</b>. A receita do m\u00eas cobre <b class=\"mono\">" + cob +
+          "%</b> do break even." + (antigo ? " O motor antigo dava <b class=\"mono\">" + antigo + "</b> pela m\u00e9dia de 6 meses \u2014 c\u00e1lculo por validar." : "");
+      }
+      painel.appendChild(m2);
+    }
     var footS = sc.querySelector(".fin2-an-sub-p");
     painel.appendChild(el("div","fin2-an-foot",
       "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar (mapeamento provisório, fecha-se na validação dos números). As linhas mostram só o que tem documento" +
@@ -346,13 +435,51 @@ Error generating stack: `+l.message+`
     var footF = fx.querySelector(".fin2-an-foot"); if(footF) painel.appendChild(footF.cloneNode(true));
 
     fx.classList.add("tt-oculto"); sc.classList.add("tt-oculto");
+    var precos = panelByTitle("Pre\u00e7os de compra"); if(precos) precos.classList.add("tt-oculto");
     fx.parentNode.insertBefore(painel, fx);
+
+    /* ---- 3. Fila de KPIs (tiles com histórico dos meses do seletor) ---- */
+    if(serie && serie.length > 1){
+      var mesAtu = fx.querySelector("h3 span");
+      mesAtu = mesAtu ? mesAtu.textContent.replace("·","").trim() : "";
+      var iM = -1;
+      for(var k = 0; k < serie.length; k++) if(serie[k].mes === mesAtu) iM = k;
+      if(iM >= 0){
+        var cur = serie[iM], ant = iM > 0 ? serie[iM-1] : null;
+        var col = function(campo){ return serie.map(function(m){ return m[campo]; }); };
+        var html = "";
+        html += tile("Receita", eur0(cur.receita), spark(col("receita")),
+          ant ? deltaTxt(cur.receita, ant.receita, true) : "");
+        html += tile("Custos", eur0(cur.custos), spark(col("custos")),
+          ant ? deltaTxt(cur.custos, ant.custos, false) : "");
+        html += tile("Resultado", (cur.resultado !== null && cur.resultado >= 0 ? "+" : "") + eur0(cur.resultado),
+          spark(col("resultado")), ant ? deltaTxt(cur.resultado, ant.resultado, true) : "");
+        html += tile("Margem contrib.", cur.mPct !== null ? Math.round(cur.mPct*100) + "%" : "—",
+          spark(col("mPct")), ant ? deltaTxt(cur.mPct, ant.mPct, true, true) : "");
+        if(cur.cob !== null){
+          var pctD = Math.min(cur.cob, 100), Circ = 2 * Math.PI * 17;
+          var corD = cur.cob >= 100 ? "var(--grn)" : (cur.cob >= 70 ? "var(--ylw)" : "var(--red)");
+          html += '<div class="tt-kpi tt-kpi--donut"><span class="tt-kpi-l">Break even</span>' +
+            '<svg width="46" height="46" viewBox="0 0 46 46">' +
+            '<circle cx="23" cy="23" r="17" fill="none" stroke="var(--s3)" stroke-width="5"/>' +
+            '<circle cx="23" cy="23" r="17" fill="none" stroke="' + corD + '" stroke-width="5" ' +
+            'stroke-linecap="round" stroke-dasharray="' + (pctD/100*Circ).toFixed(1) + ' ' + Circ.toFixed(1) + '" ' +
+            'transform="rotate(-90 23 23)"/>' +
+            '<text x="23" y="27" text-anchor="middle" font-size="11" fill="var(--t1)">' +
+            Math.round(cur.cob) + "%</text></svg>" +
+            '<span class="tt-kpi-s">da faturação necessária</span></div>';
+        }
+        var kpis = el("div","tt-kpis"); kpis.innerHTML = html;
+        var painelMapa = mapa.closest(".fin2-an-painel");
+        if(painelMapa) painelMapa.parentNode.insertBefore(kpis, painelMapa);
+      }
+    }
   }
 
   var agendado = 0;
-  function agendar(){ if(agendado) return; agendado = setTimeout(function(){ agendado = 0; aplicar(); }, 150); }
+  function agendar(){ if(agendado || colhendo) return; agendado = setTimeout(function(){ agendado = 0; aplicar(); }, 150); }
   var tent = 0, boot = setInterval(function(){
-    if(document.querySelector(".fin2-an-dr") || ++tent > 40){ clearInterval(boot); aplicar();
+    if(document.querySelector(".fin2-an-dr") || ++tent > 40){ clearInterval(boot); aplicar(); setTimeout(colher, 300);
       new MutationObserver(function(ms){
         for(var i=0;i<ms.length;i++){ var t = ms[i].target;
           var e = t.nodeType === 3 ? t.parentElement : t;
