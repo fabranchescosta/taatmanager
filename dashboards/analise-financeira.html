@@ -262,8 +262,13 @@ Error generating stack: `+l.message+`
 <script>
 (function(){
   "use strict";
+  /* Definição fechada com a Maria (29/08/2026): fixo = sai haja ou não obra;
+     variável = só sai porque houve trabalho. Outros fica 'a validar' até a app
+     desmembrar o saco (renda, consumíveis, subscrições). */
   var NATUREZA = { "Material":"variavel", "Combustível":"variavel", "Subcontratos":"variavel",
-    "Serviços":"variavel", "Transporte":"variavel", "Alimentação":"fixo" }; // provisório — validar na fase dos números
+    "Serviços":"variavel", "Transporte":"variavel", "Alimentação":"variavel",
+    "Estadia":"variavel", "Mão de obra":"variavel", "Pessoal":"fixo",
+    "Rendas":"fixo", "Comunicações":"fixo", "Trabalhos especializados":"fixo" };
   var COR = { fixo:"var(--blu)", variavel:"var(--acc)", validar:"var(--b3)" };
   function num(t){ if(!t) return null;
     t = t.replace(/[€\s  ]/g,"").replace("−","-").replace(/\./g,"").replace(",",".");
