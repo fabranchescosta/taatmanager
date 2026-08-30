@@ -244,6 +244,20 @@ Error generating stack: `+l.message+`
   .tt-kpi-d{font:10px var(--m);white-space:nowrap}
   .tt-kpi-s{font:9px var(--a);color:var(--t3)}
   .tt-kpi--donut{align-items:center;text-align:center;justify-content:space-between}
+  .tt-pilha2{display:flex;height:34px;border-radius:6px;overflow:hidden;margin-top:var(--sp-3)}
+  .tt-seg{display:flex;align-items:center;justify-content:center;font:11px var(--m);
+    color:#0c0c0c;white-space:nowrap;overflow:hidden;min-width:0}
+  .tt-seg b{font-weight:700;margin-right:5px}
+  .tt-seg--cinza{color:var(--t2)}
+  .tt-seg-min{display:none}
+  .tt-pilha2-resto{font:10px var(--m);color:var(--t3);margin-top:6px}
+  .tt-cap-min{display:none}
+  @container (max-width:560px){
+    .tt-seg-full{display:none}
+    .tt-seg-min{display:inline}
+    .tt-cap-min{display:inline}
+    .tt-cap-resto{display:none}
+  }
 </style>
 <script>
 (function(){
@@ -426,17 +440,30 @@ Error generating stack: `+l.message+`
     if(subp){ var sp2 = subp.cloneNode(true);
       sp2.innerHTML = sp2.innerHTML.replace(/ponto morto/g, "break even");
       grafico.appendChild(sp2); }
-    var pilha = fx.querySelector(".fin2-an-pilha");
-    if(pilha){ var pc2 = pilha.cloneNode(true); var segs = pc2.querySelectorAll("i");
-      if(segs[0]) segs[0].style.background = COR.fixo;
-      if(segs[1]) segs[1].style.background = COR.variavel;
-      grafico.appendChild(pc2); }
-    var legenda = el("div","fin2-an-legenda");
-    var legF = legByName(fx,"Fixos"), legV = legByName(fx,"Variáveis"), legPC = legByName(fx,"Por classificar");
-    if(legF) legenda.appendChild(pinta(legF.cloneNode(true), COR.fixo));
-    if(legV) legenda.appendChild(pinta(legV.cloneNode(true), COR.variavel));
-    if(legPC) legenda.appendChild(pinta(legPC.cloneNode(true), COR.validar));
-    grafico.appendChild(legenda);
+    var totFVP = (F || 0) + (V || 0) + (PC || 0);
+    if(totFVP > 0){
+      var b2 = el("div","tt-pilha2"), resto = [];
+      [["Fixos", F, COR.fixo, ""], ["Variáveis", V, COR.variavel, ""],
+       ["Por classificar", PC, COR.validar, " tt-seg--cinza"]].forEach(function(sg){
+        if(!sg[1]) return;
+        var pct = Math.round(sg[1] / totFVP * 100);
+        var s = el("div","tt-seg" + sg[3]);
+        s.style.flexGrow = sg[1]; s.style.background = sg[2];
+        s.title = sg[0] + " " + eur0(sg[1]) + " · " + pct + "%";
+        if(sg[1] / totFVP >= 0.14){
+          s.innerHTML = '<span class="tt-seg-full"><b>' + sg[0] + '</b>' + eur0(sg[1]) + ' · ' + pct + '%</span>' +
+            '<span class="tt-seg-min">' + pct + '%</span>';
+        } else {
+          resto.push(sg[0] + " " + eur0(sg[1]) + " · " + pct + "%");
+        }
+        b2.appendChild(s); });
+      grafico.appendChild(b2);
+      var cap = el("div","tt-pilha2-resto");
+      cap.innerHTML = '<span class="tt-cap-min">Fixos ' + eur0(F) + ' · Variáveis ' + eur0(V) +
+        (PC ? ' · Por classificar ' + eur0(PC) : '') + '</span>' +
+        (resto.length ? '<span class="tt-cap-resto">' + resto.join(" · ") + '</span>' : "");
+      if(cap.innerHTML) grafico.appendChild(cap);
+    }
     painel.appendChild(grafico);
 
     var morto = fx.querySelector(".fin2-an-morto");
@@ -507,19 +534,21 @@ Error generating stack: `+l.message+`
         if(painelMapa) painelMapa.parentNode.insertBefore(kpis, painelMapa);
       }
     }
+    if(obs) obs.takeRecords(); /* não reagir às nossas próprias mutações */
   }
 
-  var agendado = 0;
+  var agendado = 0, obs = null;
   function agendar(){ if(agendado || colhendo) return; agendado = setTimeout(function(){ agendado = 0; aplicar(); }, 150); }
   var tent = 0, boot = setInterval(function(){
     if(document.querySelector(".fin2-an-dr") || ++tent > 40){ clearInterval(boot); aplicar(); setTimeout(colher, 300);
-      new MutationObserver(function(ms){
+      obs = new MutationObserver(function(ms){
         for(var i=0;i<ms.length;i++){ var t = ms[i].target;
           var e = t.nodeType === 3 ? t.parentElement : t;
           if(e && e.closest && e.closest(".tt-custos,.tt-mapa")) continue;
           if(e && e.closest && !e.closest(".fin2-an-colunas")) continue;
           agendar(); return; }
-      }).observe(document.body, { childList:true, subtree:true, characterData:true });
+      });
+      obs.observe(document.body, { childList:true, subtree:true, characterData:true });
     }
   }, 250);
 })();
