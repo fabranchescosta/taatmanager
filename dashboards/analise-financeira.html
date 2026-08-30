@@ -237,8 +237,8 @@ Error generating stack: `+l.message+`
   .tt-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:var(--sp-3)}
   .tt-kpi{background:var(--s1);border:1px solid var(--b1);padding:10px 12px;
     display:flex;flex-direction:column;gap:4px;min-width:0}
-  .tt-kpi-l{font:10px var(--m);letter-spacing:.06em;text-transform:uppercase;color:var(--t3);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tt-kpi-l{font:9.5px var(--m);letter-spacing:.03em;text-transform:uppercase;color:var(--t3)}
+  .tt-kpi .tt-chip{white-space:normal;line-height:1.5}
   .tt-kpi-v{font:600 18px var(--m);color:var(--t1);font-variant-numeric:tabular-nums;white-space:nowrap}
   .tt-kpi svg.tt-spark{width:100%;height:22px;display:block}
   .tt-kpi-d{font:10px var(--m);white-space:nowrap}
@@ -324,6 +324,7 @@ Error generating stack: `+l.message+`
     if(cur === null || prev === null || !isFinite(prev)) return "";
     var d = emPP ? (cur - prev) * 100 : (Math.abs(prev) > 0.004 ? (cur - prev)/Math.abs(prev)*100 : null);
     if(d === null || !isFinite(d)) return "";
+    if(Math.abs(d) < 0.05) return '<span style="color:var(--t3)">· 0%</span>';
     var sobe = d >= 0, bom = bomSubir ? sobe : !sobe;
     var s = (sobe ? "↗ +" : "↘ −") + Math.abs(d).toFixed(1).replace(".",",") + (emPP ? " p.p." : "%");
     return '<span class="' + (bom ? "c-grn" : "c-red") + '">' + s + '</span>';
@@ -447,15 +448,12 @@ Error generating stack: `+l.message+`
       if(iM >= 0){
         var cur = serie[iM], ant = iM > 0 ? serie[iM-1] : null;
         var col = function(campo){ return serie.map(function(m){ return m[campo]; }); };
+        var pendente = function(rotulo, nota){
+          return '<div class="tt-kpi"><span class="tt-kpi-l">' + rotulo + '</span>' +
+            '<span class="tt-kpi-v" style="color:var(--t3)">—</span>' +
+            '<span class="tt-chip">por ligar aos dados</span>' +
+            '<span class="tt-kpi-s">' + nota + '</span></div>'; };
         var html = "";
-        html += tile("Receita", eur0(cur.receita), spark(col("receita")),
-          ant ? deltaTxt(cur.receita, ant.receita, true) : "");
-        html += tile("Custos", eur0(cur.custos), spark(col("custos")),
-          ant ? deltaTxt(cur.custos, ant.custos, false) : "");
-        html += tile("Resultado", (cur.resultado !== null && cur.resultado >= 0 ? "+" : "") + eur0(cur.resultado),
-          spark(col("resultado")), ant ? deltaTxt(cur.resultado, ant.resultado, true) : "");
-        html += tile("Margem contrib.", cur.mPct !== null ? Math.round(cur.mPct*100) + "%" : "—",
-          spark(col("mPct")), ant ? deltaTxt(cur.mPct, ant.mPct, true, true) : "");
         if(cur.cob !== null){
           var pctD = Math.min(cur.cob, 100), Circ = 2 * Math.PI * 17;
           var corD = cur.cob >= 100 ? "var(--grn)" : (cur.cob >= 70 ? "var(--ylw)" : "var(--red)");
@@ -469,6 +467,12 @@ Error generating stack: `+l.message+`
             Math.round(cur.cob) + "%</text></svg>" +
             '<span class="tt-kpi-s">da faturação necessária</span></div>';
         }
+        html += tile("Custos fixos", eur0(cur.F), spark(col("F")),
+          ant ? deltaTxt(cur.F, ant.F, false) : "");
+        html += tile("Custos variáveis", eur0(cur.V), spark(col("V")),
+          ant ? deltaTxt(cur.V, ant.V, false) : "");
+        html += pendente("Margem bruta", "projetos fechados · vem do módulo de projetos");
+        html += pendente("Horas picadas", "vs. horas disponíveis · vem do registo de horas");
         var kpis = el("div","tt-kpis"); kpis.innerHTML = html;
         var painelMapa = mapa.closest(".fin2-an-painel");
         if(painelMapa) painelMapa.parentNode.insertBefore(kpis, painelMapa);
