@@ -20,12 +20,14 @@ houve trabalho.
 | Rendas* | Fixo | tipo novo a criar |
 | Comunicações* | Fixo | tipo novo a criar |
 | Trabalhos especializados* | Fixo | tipo novo a criar — contabilidade e avenças |
+| Água & Eletricidade* | Fixo | tipo novo a criar |
 | Outros | A validar | saco misto; desmembrar (ver abaixo) |
 
 ## Mudanças pedidas à app (taat-cockpit)
 
-1. **Criar os tipos de estrutura**: Rendas, Comunicações e Trabalhos
-   especializados (todos fixos).
+1. **Criar os tipos de estrutura**, separados e todos fixos (decisão Maria):
+   Rendas · Comunicações · Trabalhos especializados · Água & Eletricidade.
+   Nada de segmento agregado — cada um é um tipo próprio.
 2. **Separar "Serviços"** (decisão Maria): avenças e contabilidade passam para
    Trabalhos especializados (fixo); serviços de obra tipo lacagem passam para
    Subcontratos (variável). O tipo "Serviços" tende a desaparecer.
