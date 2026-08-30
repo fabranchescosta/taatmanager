@@ -271,7 +271,7 @@ Error generating stack: `+l.message+`
     "Pessoal (Interno)":"fixo", "Pessoal (Externo)":"variavel",
     "Rendas":"fixo", "Comunicações":"fixo", "Trabalhos especializados":"fixo",
     "Água & Eletricidade":"fixo" };
-  var COR = { fixo:"var(--blu)", variavel:"var(--acc)", validar:"var(--b3)" };
+  var COR = { fixo:"var(--acc)", variavel:"var(--blu)", validar:"var(--b3)" }; // convenção do cockpit
   function num(t){ if(!t) return null;
     t = t.replace(/[€\s  ]/g,"").replace("−","-").replace(/\./g,"").replace(",",".");
     var v = parseFloat(t); return isNaN(v) ? null : v; }
@@ -373,33 +373,46 @@ Error generating stack: `+l.message+`
 
     var F = legVal(fx,"Fixos"), V = legVal(fx,"Variáveis"), PC = legVal(fx,"Por classificar") || 0;
 
-    /* ---- 1. Mapa de resultados por margem de contribuição ---- */
+    /* ---- 1. Mapa de resultados — DRE simplificada (linhas da Maria) ---- */
     var rTopo = mapa.querySelector(".fin2-an-dr-l.topo"),
         rRes  = mapa.querySelector(".fin2-an-dr-l.resultado"),
         rFora = mapa.querySelector(".fin2-an-dr-l.fora");
-    var receita = rTopo && num(rTopo.querySelector(".fin2-an-dr-v").textContent);
-    var resultado = rRes && num(rRes.querySelector(".fin2-an-dr-v").textContent);
-    var fecha = receita !== null && resultado !== null && F !== null && V !== null &&
-                Math.abs((receita - V - F - PC) - resultado) < 0.02;
+    var rObra = null, rPes2 = null, rEst = null;
+    mapa.querySelectorAll(".fin2-an-dr-l").forEach(function(l){
+      var n = l.querySelector(".fin2-an-dr-n"); if(!n) return;
+      var t = n.textContent.trim();
+      if(t === "Custos de obra") rObra = l;
+      else if(t === "Pessoal") rPes2 = l;
+      else if(t === "Estrutura") rEst = l; });
+    function valDe(r){ var v = r && r.querySelector(".fin2-an-dr-v"); return v ? num(v.textContent) : null; }
+    var receita = valDe(rTopo), resultado = valDe(rRes);
+    var fecha = receita !== null && resultado !== null && rObra && rPes2 && rEst &&
+      Math.abs((receita + valDe(rObra) + valDe(rPes2) + valDe(rEst)) - resultado) < 0.02;
     if(fecha){
       var novo = el("div","fin2-an-dr tt-mapa");
-      novo.appendChild(rTopo.cloneNode(true));
-      function linha(cls, nome, nota, valTxt, valCls){
-        var r = el("div","fin2-an-dr-l " + (cls||""));
+      function cloneNome(r, nome, nota){
+        var c = r.cloneNode(true);
+        var n = c.querySelector(".fin2-an-dr-n"); if(n) n.textContent = nome;
+        if(nota !== undefined){ var nt = c.querySelector(".fin2-an-dr-nota"); if(nt) nt.textContent = nota; }
+        return c; }
+      function linhaZero(nome, nota){
+        var r = el("div","fin2-an-dr-l");
         r.appendChild(el("span","fin2-an-dr-n",nome));
         r.appendChild(el("span","fin2-an-dr-nota",nota));
-        r.appendChild(el("span","fin2-an-dr-v " + (valCls||""),valTxt));
-        return r; }
-      novo.appendChild(linha("", "Custos variáveis",
-        "material, freelancers e deslocações — só saem quando há trabalho", fmt(-V).replace("+","")));
-      var marg = receita - V;
-      novo.appendChild(linha("tt-margem", "Margem de contribuição",
-        receita > 0 ? Math.round(marg/receita*100) + "% da receita do mês" : "", fmt(marg), marg >= 0 ? "c-blu" : ""));
-      novo.appendChild(linha("", "Custos fixos",
-        "salários da equipa, rendas e recorrências — saem haja ou não obra", fmt(-F).replace("+","")));
-      if(PC > 0.004) novo.appendChild(linha("", "Por classificar",
-        "custos ainda sem lado atribuído", fmt(-PC).replace("+","")));
-      novo.appendChild(rRes.cloneNode(true));
+        var v = el("span","fin2-an-dr-v","0,00\u00a0€"); v.style.color = "var(--t3)";
+        r.appendChild(v); return r; }
+      novo.appendChild(cloneNome(rTopo, "Vendas"));
+      novo.appendChild(cloneNome(rObra, "Matéria Prima",
+        "material, serviços e subcontratos imputados às obras — separa-se com a nova taxonomia"));
+      novo.appendChild(cloneNome(rPes2, "Despesas Pessoal",
+        "interno (recibos de vencimento); o externo junta-se com a separação interno/externo"));
+      novo.appendChild(cloneNome(rEst, "FSE",
+        "fornecimentos e serviços externos — custos gerais não imputados a obra"));
+      novo.appendChild(linhaZero("Custos Financeiros",
+        "por ligar ao banco — juros e comissões ainda sem linha própria"));
+      novo.appendChild(linhaZero("Amortizações e Provisões",
+        "por ligar à contabilidade — ainda não entram nos dados"));
+      novo.appendChild(cloneNome(rRes, "Resultado Líquido"));
       if(rFora) novo.appendChild(rFora.cloneNode(true));
       mapa.classList.add("tt-oculto");
       mapa.parentNode.insertBefore(novo, mapa);
@@ -508,7 +521,7 @@ Error generating stack: `+l.message+`
     /* Break even sai daqui — vive no tile da fila de KPIs (decisão Maria) */
     var footS = sc.querySelector(".fin2-an-sub-p");
     painel.appendChild(el("div","fin2-an-foot",
-      "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar. A variação de cada linha compara com a média dos 3 meses anteriores. As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
+      "Na lista, barra <b>verde</b> = custo fixo, <b>azul</b> = variável, cinza = natureza por confirmar. A variação de cada linha compara com a média dos 3 meses anteriores. As linhas por categoria mostram só o que tem documento; o Pessoal entra pelos recibos de vencimento" +
       (footS ? " — " + footS.textContent.trim().charAt(0).toLowerCase() + footS.textContent.trim().slice(1) : ".")));
     var footF = fx.querySelector(".fin2-an-foot"); if(footF) painel.appendChild(footF.cloneNode(true));
 
