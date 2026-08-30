@@ -223,10 +223,160 @@ Error generating stack: `+l.message+`
 <div id="raiz"></div>
 
 <style>
+  /* Financeiro da revisão: mapa por margem de contribuição + custos fundidos.
+     Convenção de cor da Maria: azul = fixo, verde = variável, cinza = por confirmar. */
+  .tt-oculto{display:none!important}
+  .tt-margem{border-top:1px solid var(--b2)}
+  .tt-margem .fin2-an-dr-n{font-weight:600;color:var(--t1)}
+  .tt-margem .fin2-an-dr-v{font-size:19px}
+  .tt-lista{margin-top:var(--sp-2)}
+  .tt-grafico{margin-top:var(--sp-4);border-top:1px solid var(--b2);padding-top:var(--sp-4)}
+  .tt-chip{font:9px var(--m);letter-spacing:.05em;text-transform:uppercase;color:var(--t3);
+    border:1px solid var(--b2);padding:1px 5px;border-radius:3px;white-space:nowrap;
+    align-self:flex-start;margin-top:2px}
+</style>
+<script>
+(function(){
+  "use strict";
+  var NATUREZA = { "Material":"variavel", "Combustível":"variavel", "Subcontratos":"variavel",
+    "Serviços":"variavel", "Transporte":"variavel", "Alimentação":"fixo" }; // provisório — validar na fase dos números
+  var COR = { fixo:"var(--blu)", variavel:"var(--acc)", validar:"var(--b3)" };
+  function num(t){ if(!t) return null;
+    t = t.replace(/[€\s  ]/g,"").replace("−","-").replace(/\./g,"").replace(",",".");
+    var v = parseFloat(t); return isNaN(v) ? null : v; }
+  function fmt(v){ var neg = v < -0.004, a = Math.abs(v);
+    var s = a.toFixed(2).replace(".",","); s = s.replace(/\B(?=(\d{3})+(?!\d))/g," ");
+    return (neg ? "−" : "+") + s + " €"; }
+  function el(tag, cls, html){ var e = document.createElement(tag); if(cls) e.className = cls;
+    if(html !== undefined) e.innerHTML = html; return e; }
+  function panelByTitle(pfx){ var ps = document.querySelectorAll(".fin2-an-painel");
+    for(var i=0;i<ps.length;i++){ if(ps[i].classList.contains("tt-custos")) continue;
+      var h = ps[i].querySelector("h3");
+      if(h && h.textContent.indexOf(pfx) === 0) return ps[i]; } return null; }
+  function legByName(painel, nome){ var ls = painel.querySelectorAll(".fin2-an-leg");
+    for(var i=0;i<ls.length;i++){ var n = ls[i].querySelector(".fin2-an-leg-n");
+      if(n && n.textContent.trim() === nome) return ls[i]; } return null; }
+  function legVal(painel, nome){ var l = legByName(painel, nome);
+    return l ? num(l.querySelector(".fin2-an-leg-v").textContent) : null; }
+  function pinta(leg, cor){ var p = leg.querySelector(".fin2-an-ponto"); if(p) p.style.background = cor; return leg; }
+
+  function aplicar(){
+    var fx = panelByTitle("Fixos e variáveis"), sc = panelByTitle("Saídas por categoria");
+    var mapa = document.querySelector(".fin2-an-dr:not(.tt-mapa)");
+    if(!fx || !sc || !mapa) return;
+
+    document.querySelectorAll(".tt-custos,.tt-mapa").forEach(function(n){ n.remove(); });
+
+    var F = legVal(fx,"Fixos"), V = legVal(fx,"Variáveis"), PC = legVal(fx,"Por classificar") || 0;
+
+    /* ---- 1. Mapa de resultados por margem de contribuição ---- */
+    var rTopo = mapa.querySelector(".fin2-an-dr-l.topo"),
+        rRes  = mapa.querySelector(".fin2-an-dr-l.resultado"),
+        rFora = mapa.querySelector(".fin2-an-dr-l.fora");
+    var receita = rTopo && num(rTopo.querySelector(".fin2-an-dr-v").textContent);
+    var resultado = rRes && num(rRes.querySelector(".fin2-an-dr-v").textContent);
+    var fecha = receita !== null && resultado !== null && F !== null && V !== null &&
+                Math.abs((receita - V - F - PC) - resultado) < 0.02;
+    if(fecha){
+      var novo = el("div","fin2-an-dr tt-mapa");
+      novo.appendChild(rTopo.cloneNode(true));
+      function linha(cls, nome, nota, valTxt, valCls){
+        var r = el("div","fin2-an-dr-l " + (cls||""));
+        r.appendChild(el("span","fin2-an-dr-n",nome));
+        r.appendChild(el("span","fin2-an-dr-nota",nota));
+        r.appendChild(el("span","fin2-an-dr-v " + (valCls||""),valTxt));
+        return r; }
+      novo.appendChild(linha("", "Custos variáveis",
+        "material, freelancers e deslocações — só saem quando há trabalho", fmt(-V).replace("+","")));
+      var marg = receita - V;
+      novo.appendChild(linha("tt-margem", "Margem de contribuição",
+        receita > 0 ? Math.round(marg/receita*100) + "% da receita do mês" : "", fmt(marg), marg >= 0 ? "c-blu" : ""));
+      novo.appendChild(linha("", "Custos fixos",
+        "salários da equipa, rendas e recorrências — saem haja ou não obra", fmt(-F).replace("+","")));
+      if(PC > 0.004) novo.appendChild(linha("", "Por classificar",
+        "custos ainda sem lado atribuído", fmt(-PC).replace("+","")));
+      novo.appendChild(rRes.cloneNode(true));
+      if(rFora) novo.appendChild(rFora.cloneNode(true));
+      mapa.classList.add("tt-oculto");
+      mapa.parentNode.insertBefore(novo, mapa);
+    } else {
+      mapa.classList.remove("tt-oculto");
+    }
+
+    /* ---- 2. Custos: resumo fixos/variáveis + lista única por tipo de custo ---- */
+    var painel = el("section","fin2-card fin2-an-painel tt-custos");
+    var cab = el("div","fin2-an-cab");
+    var h3 = el("h3","", "Custos ");
+    var mes = fx.querySelector("h3 span"); if(mes) h3.appendChild(mes.cloneNode(true));
+    cab.appendChild(h3);
+    var atalho = fx.querySelector(".fin2-an-atalho"); if(atalho) cab.appendChild(atalho.cloneNode(true));
+    painel.appendChild(cab);
+
+    var lista = el("div","tt-lista");
+    sc.querySelectorAll(".fin2-an-row").forEach(function(row){
+      var r = row.cloneNode(true);
+      var nome = r.querySelector(".fin2-an-nome");
+      var nat = (nome && NATUREZA[nome.textContent.trim()]) || "validar";
+      var barra = r.querySelector(".fin2-an-bar i"); if(barra) barra.style.background = COR[nat];
+      if(nat === "validar"){ var lb = r.querySelector(".fin2-an-lb");
+        if(lb) lb.appendChild(el("span","tt-chip","a validar")); }
+      lista.appendChild(r); });
+    painel.appendChild(lista);
+
+    var grafico = el("div","tt-grafico");
+    var subp = fx.querySelector(".fin2-an-sub-p"); if(subp) grafico.appendChild(subp.cloneNode(true));
+    var pilha = fx.querySelector(".fin2-an-pilha");
+    if(pilha){ var pc2 = pilha.cloneNode(true); var segs = pc2.querySelectorAll("i");
+      if(segs[0]) segs[0].style.background = COR.fixo;
+      if(segs[1]) segs[1].style.background = COR.variavel;
+      grafico.appendChild(pc2); }
+    var legenda = el("div","fin2-an-legenda");
+    var legF = legByName(fx,"Fixos"), legV = legByName(fx,"Variáveis"), legPC = legByName(fx,"Por classificar");
+    if(legF) legenda.appendChild(pinta(legF.cloneNode(true), COR.fixo));
+    if(legV) legenda.appendChild(pinta(legV.cloneNode(true), COR.variavel));
+    if(legPC) legenda.appendChild(pinta(legPC.cloneNode(true), COR.validar));
+    grafico.appendChild(legenda);
+    painel.appendChild(grafico);
+
+    var morto = fx.querySelector(".fin2-an-morto"); if(morto) painel.appendChild(morto.cloneNode(true));
+    var footS = sc.querySelector(".fin2-an-sub-p");
+    painel.appendChild(el("div","fin2-an-foot",
+      "Na lista, barra <b>azul</b> = custo fixo, <b>verde</b> = variável, cinza = natureza por confirmar (mapeamento provisório, fecha-se na validação dos números). As linhas mostram só o que tem documento" +
+      (footS ? " — " + footS.textContent.trim().charAt(0).toLowerCase() + footS.textContent.trim().slice(1) : ".")));
+    var footF = fx.querySelector(".fin2-an-foot"); if(footF) painel.appendChild(footF.cloneNode(true));
+
+    fx.classList.add("tt-oculto"); sc.classList.add("tt-oculto");
+    fx.parentNode.insertBefore(painel, fx);
+  }
+
+  var agendado = 0;
+  function agendar(){ if(agendado) return; agendado = setTimeout(function(){ agendado = 0; aplicar(); }, 150); }
+  var tent = 0, boot = setInterval(function(){
+    if(document.querySelector(".fin2-an-dr") || ++tent > 40){ clearInterval(boot); aplicar();
+      new MutationObserver(function(ms){
+        for(var i=0;i<ms.length;i++){ var t = ms[i].target;
+          var e = t.nodeType === 3 ? t.parentElement : t;
+          if(e && e.closest && e.closest(".tt-custos,.tt-mapa")) continue;
+          if(e && e.closest && !e.closest(".fin2-an-colunas")) continue;
+          agendar(); return; }
+      }).observe(document.body, { childList:true, subtree:true, characterData:true });
+    }
+  }, 250);
+})();
+</script>
+
+<style>
   /* Fecho de layout — margens de página e largura máxima (29/08/2026) */
   .fin2-an{padding:28px 32px 72px;max-width:1560px;margin:0 auto}
   @media(max-width:1180px){.fin2-an{padding:20px 20px 56px}}
   @media(max-width:640px){.fin2-an{padding:14px 12px 48px}}
   /* linhas de escalões/categorias: não deixar os valores tocar na borda do painel */
   .fin2-an-row{grid-template-columns:minmax(118px,1.4fr) minmax(40px,1.8fr) auto auto;gap:var(--sp-2)}
+  /* Resultado do mês em ecrã estreito: nome + valor na 1.ª linha, nota por baixo */
+  @container (max-width:520px){
+    .fin2-an-dr-l{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}
+    .fin2-an-dr-nota{grid-column:1/-1;grid-row:2}
+    .fin2-an-dr-nota:empty{display:none}
+    .fin2-an-dr-v{min-width:0}
+  }
 </style>
